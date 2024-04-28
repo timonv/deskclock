@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+embedded-graphics = "0.8.1"
+embedded-hal = "1.0.0"
+epd-waveshare = { git = "https://github.com/caemor/epd-waveshare.git" }
+linux-embedded-hal = "0.4.0"
