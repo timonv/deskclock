@@ -113,21 +113,28 @@ impl MyApp {
                 EventFilter::Today => event.start.is_today(),
                 EventFilter::Later => event.start.is_after_today(),
             })
-            .filter(|event| event.end > (self.current_time - chrono::Duration::hours(1)))
+            .filter(|event| {
+                if self.events.len() < 5 {
+                    return true;
+                }
+                event
+                    .end
+                    .is_before(self.current_time - chrono::Duration::hours(1))
+            })
             .take(10);
 
-        let mut last_date = self.current_time.date_naive();
+        let mut last_date = self.current_time;
         for event in events {
             ui.horizontal(|ui| {
                 if EventFilter::Later == self.current_filter {
-                    if last_date != event.start.date_naive() {
+                    if !last_date.is_on_same_day_as(event.start) {
                         ui.label(
                             RichText::new(format!("{}", event.start.format("%d-%m"))).strong(),
                         );
                     } else {
                         ui.add_space(40.0);
                     }
-                    last_date = event.start.date_naive();
+                    last_date = event.start;
                 }
 
                 let mut text = RichText::new(format!(
