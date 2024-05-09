@@ -157,7 +157,7 @@ impl MyApp {
             ));
 
             // About to start
-            if event.start > (self.current_time - chrono::Duration::minutes(10)) {
+            if event.start < (self.current_time - chrono::Duration::minutes(10)) {
                 text = text.color(egui::Color32::LIGHT_RED);
             }
 
@@ -191,36 +191,38 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.update_time();
         self.update_events();
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if ui.small_button("close").clicked() {
-                std::process::exit(0);
-            };
-            ui.allocate_ui(egui::Vec2::new(800.0, 400.0), |ui| {
-                ui.horizontal_centered(|ui| {
-                    ui.allocate_ui(egui::Vec2::new(400.0, 400.0), |ui| {
-                        ui.vertical_centered_justified(|ui| {
-                            self.render_time(ui);
-                            self.render_next_event(ui);
+        let my_frame = egui::containers::Frame::default().fill(egui::Color32::BLACK);
+        egui::CentralPanel::default()
+            .frame(my_frame)
+            .show(ctx, |ui| {
+                if ui.small_button("close").clicked() {
+                    std::process::exit(0);
+                };
+                ui.allocate_ui(egui::Vec2::new(700.0, 400.0), |ui| {
+                    ui.horizontal_centered(|ui| {
+                        ui.allocate_ui(egui::Vec2::new(250.0, 300.0), |ui| {
+                            ui.vertical_centered_justified(|ui| {
+                                self.render_time(ui);
+                                self.render_next_event(ui);
+                            });
                         });
-                    });
-                    ui.allocate_ui(egui::Vec2::new(400.0, 400.0), |ui| {
-                        ui.horizontal_centered(|ui| {
-                            ui.vertical(|ui| {
-                                ui.horizontal(|ui| {
-                                    self.render_event_label(ui, EventFilter::Today);
-                                    ui.add_space(10.0);
-                                    self.render_event_label(ui, EventFilter::Later);
+                        ui.allocate_ui(egui::Vec2::new(275.0, 300.0), |ui| {
+                            ui.horizontal_centered(|ui| {
+                                ui.vertical(|ui| {
+                                    ui.horizontal(|ui| {
+                                        self.render_event_label(ui, EventFilter::Today);
+                                        ui.add_space(10.0);
+                                        self.render_event_label(ui, EventFilter::Later);
+                                    });
+                                    ui.separator();
+                                    ui.add_space(5.0);
+                                    self.render_events(ui);
                                 });
-                                ui.separator();
-                                ui.add_space(5.0);
-                                self.render_events(ui);
                             });
                         });
                     });
                 });
             });
-        });
 
         ctx.request_repaint_after(Duration::new(60, 0));
     }
