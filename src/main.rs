@@ -1,10 +1,12 @@
 use std::{error::Error, time::Duration};
 
 use chrono::{DateTime, Local, Timelike};
+use date_ext::DateExt;
 use eframe::egui::{self, RichText, WindowLevel};
 use google::GoogleCalendar;
 use log::warn;
 
+mod date_ext;
 mod google;
 mod oauth_browser_delegate;
 
@@ -104,18 +106,17 @@ impl MyApp {
     }
 
     fn render_events(&self, ui: &mut egui::Ui) {
-        let today = self.current_time.date_naive();
         let events = self
             .events
             .iter()
             .filter(|event| match self.current_filter {
-                EventFilter::Today => event.start.date_naive() == today,
-                EventFilter::Later => event.start.date_naive() > today,
+                EventFilter::Today => event.start.is_today(),
+                EventFilter::Later => event.start.is_after_today(),
             })
             .filter(|event| event.end > (self.current_time - chrono::Duration::hours(1)))
             .take(10);
 
-        let mut last_date = today;
+        let mut last_date = self.current_time.date_naive();
         for event in events {
             ui.horizontal(|ui| {
                 if EventFilter::Later == self.current_filter {
@@ -147,8 +148,8 @@ impl MyApp {
 
     fn render_next_event(&self, ui: &mut egui::Ui) {
         if let Some(event) = self.events.iter().find(|event| {
-            event.end.date_naive() == self.current_time.date_naive()
-                && (event.end > self.current_time || event.start > self.current_time)
+            event.end.is_on_same_day_as(self.current_time) && event.end.is_before(self.current_time)
+                || event.start.is_before(self.current_time)
         }) {
             let mut text = RichText::new(format!(
                 "{} - {}:   {}",
@@ -158,12 +159,15 @@ impl MyApp {
             ));
 
             // About to start
-            if event.start < (self.current_time - chrono::Duration::minutes(10)) {
+            if event
+                .start
+                .is_after(self.current_time - chrono::Duration::minutes(10))
+            {
                 text = text.color(egui::Color32::LIGHT_RED);
             }
 
             // Already started
-            if event.start < self.current_time {
+            if event.start.is_after(self.current_time) {
                 text = text.color(egui::Color32::LIGHT_GREEN);
             }
 
