@@ -6,6 +6,9 @@ I tend to be late, this gives me the illusion that I tried my best by throwing e
 
 Feel free to fork and experiment.
 
+![image](https://github.com/timonv/deskclock/assets/49373/3f26a1d7-ef5f-46e2-81d2-eaa55a026904)
+
+
 ## Features
 
 - Display the current time
