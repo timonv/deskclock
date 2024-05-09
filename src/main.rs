@@ -111,7 +111,9 @@ impl MyApp {
             .filter(|event| match self.current_filter {
                 EventFilter::Today => event.start.date_naive() == today,
                 EventFilter::Later => event.start.date_naive() > today,
-            });
+            })
+            .filter(|event| event.end > (self.current_time - chrono::Duration::hours(1)))
+            .take(10);
 
         let mut last_date = today;
         for event in events {
@@ -144,11 +146,10 @@ impl MyApp {
     }
 
     fn render_next_event(&self, ui: &mut egui::Ui) {
-        if let Some(event) = self
-            .events
-            .iter()
-            .find(|event| event.end > self.current_time || event.start > self.current_time)
-        {
+        if let Some(event) = self.events.iter().find(|event| {
+            event.end.date_naive() == self.current_time.date_naive()
+                && (event.end > self.current_time || event.start > self.current_time)
+        }) {
             let mut text = RichText::new(format!(
                 "{} - {}:   {}",
                 event.start.format("%H:%M"),

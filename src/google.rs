@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::Duration;
+use chrono::{Duration, Timelike as _};
 use google_calendar3::api::{EventDateTime, Events};
 use google_calendar3::hyper::client::HttpConnector;
 use google_calendar3::hyper_rustls::HttpsConnector;
@@ -91,7 +91,9 @@ impl AsyncCalendar {
     }
 
     async fn get_events(&self) -> Result<Events> {
-        let time_min = chrono::Utc::now() - Duration::minutes(10);
+        let time_min = chrono::offset::Local::now()
+            .with_hour(0)
+            .expect("Could not set min time for calendar");
         log::warn!(
             "Getting events from Google Calendar API between {} and now",
             time_min
@@ -105,9 +107,9 @@ impl AsyncCalendar {
             .single_events(true)
             .show_deleted(false)
             .order_by("startTime")
-            .time_min(time_min)
+            .time_min(time_min.into())
             // .time_max(chrono::Utc::now())
-            .max_results(10)
+            .max_results(50)
             .doit()
             .await?
             .1;
