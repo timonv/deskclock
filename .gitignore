@@ -1,3 +1,4 @@
 /target
 tokencache.json
 credentials.json
+release.sh

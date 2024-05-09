@@ -1,8 +1,8 @@
-cargo-features = ["codegen-backend"]
 [package]
 name = "deskclock"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 anyhow = "1.0.82"
@@ -36,17 +36,3 @@ pre-build = [
 
 [profile.dev]
 debug = 0
-# codegen-backend = "cranelift"
-# [profile.release]
-# opt-level = 0
-# strip = "none"
-# lto = false
-# codegen-units = 256
-# panic = "abort"
-# debug = 0
-# codegen-backend = "cranelift"
-# embedded-graphics = "0.8.1"
-# embedded-hal = "1.0.0"
-# epd-waveshare = { git = "https://github.com/caemor/epd-waveshare.git" }
-# linux-embedded-hal = "0.4.0"
-# rppal = { version = "0.17.1", features = ["hal"] }
