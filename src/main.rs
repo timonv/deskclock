@@ -11,7 +11,8 @@ mod google;
 mod oauth_browser_delegate;
 
 static GOOGLE_REFRESH_INTERVAL: i64 = 60 * 60; // 1 hour
-                                               //
+static MAX_NUM_EVENTS: usize = 10;
+//
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
@@ -106,25 +107,23 @@ impl MyApp {
     }
 
     fn render_events(&self, ui: &mut egui::Ui) {
-        let events = self
+        let mut events: Vec<&google::CalendarEvent> = self
             .events
             .iter()
             .filter(|event| match self.current_filter {
                 EventFilter::Today => event.start.is_today(),
                 EventFilter::Later => event.start.is_after_today(),
             })
-            .filter(|event| {
-                if self.events.len() < 5 {
-                    return true;
-                }
+            .collect();
+        if events.len() > 5 {
+            events.retain(|&event| {
                 event
                     .end
                     .is_before(self.current_time - chrono::Duration::hours(1))
-            })
-            .take(10);
-
+            });
+        }
         let mut last_date = self.current_time;
-        for event in events {
+        for event in events.iter().take(MAX_NUM_EVENTS) {
             ui.horizontal(|ui| {
                 if EventFilter::Later == self.current_filter {
                     if !last_date.is_on_same_day_as(event.start) {
@@ -155,8 +154,9 @@ impl MyApp {
 
     fn render_next_event(&self, ui: &mut egui::Ui) {
         if let Some(event) = self.events.iter().find(|event| {
-            event.end.is_on_same_day_as(self.current_time) && event.end.is_before(self.current_time)
-                || event.start.is_before(self.current_time)
+            event.end.is_on_same_day_as(self.current_time)
+                && (event.end.is_before(self.current_time)
+                    || event.start.is_before(self.current_time))
         }) {
             let mut text = RichText::new(format!(
                 "{} - {}:   {}",
