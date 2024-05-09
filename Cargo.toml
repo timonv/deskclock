@@ -1,3 +1,4 @@
+cargo-features = ["codegen-backend"]
 [package]
 name = "deskclock"
 version = "0.1.0"
@@ -32,6 +33,10 @@ pre-build = [
   "dpkg --add-architecture $CROSS_DEB_ARCH",
   "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
 ]
+
+[profile.dev]
+debug = 0
+# codegen-backend = "cranelift"
 # [profile.release]
 # opt-level = 0
 # strip = "none"
