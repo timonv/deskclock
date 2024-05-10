@@ -14,7 +14,7 @@ pub struct GoogleCalendar {
     runtime: tokio::runtime::Runtime,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CalendarEvent {
     pub start: chrono::DateTime<chrono::Local>,
     pub end: chrono::DateTime<chrono::Local>,

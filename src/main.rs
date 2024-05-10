@@ -136,20 +136,43 @@ impl MyApp {
                     last_date = event.start;
                 }
 
-                let mut text = RichText::new(format!(
-                    "{} - {}:   {}",
-                    event.start.format("%H:%M"),
-                    event.end.format("%H:%M"),
-                    event.summary
-                ));
-
-                if event.end < self.current_time {
-                    text = text.strikethrough();
-                }
+                let text = self.format_event(event);
 
                 ui.label(text);
             });
         }
+    }
+
+    fn format_event(&self, event: &google::CalendarEvent) -> RichText {
+        let mut text = RichText::new(format!(
+            "{} - {}:   {}",
+            event.start.format("%H:%M"),
+            event.end.format("%H:%M"),
+            event.summary
+        ));
+
+        if event.end < self.current_time {
+            text = text.strikethrough();
+            return text;
+        }
+
+        if event
+            .start
+            .is_after(self.current_time - chrono::Duration::minutes(10))
+        {
+            text = text.color(egui::Color32::LIGHT_RED);
+        }
+
+        // Already started
+        if event.start.is_after(self.current_time) {
+            text = text.color(egui::Color32::LIGHT_GREEN);
+        }
+
+        if event == self.events.first().expect("No events") {
+            text = text.strong();
+        }
+
+        text
     }
 
     fn render_next_event(&self, ui: &mut egui::Ui) {
@@ -158,27 +181,9 @@ impl MyApp {
                 && (event.end.is_before(self.current_time)
                     || event.start.is_before(self.current_time))
         }) {
-            let mut text = RichText::new(format!(
-                "{} - {}:   {}",
-                event.start.format("%H:%M"),
-                event.end.format("%H:%M"),
-                event.summary
-            ));
+            let text = self.format_event(event);
 
-            // About to start
-            if event
-                .start
-                .is_after(self.current_time - chrono::Duration::minutes(10))
-            {
-                text = text.color(egui::Color32::LIGHT_RED);
-            }
-
-            // Already started
-            if event.start.is_after(self.current_time) {
-                text = text.color(egui::Color32::LIGHT_GREEN);
-            }
-
-            ui.label(text.strong());
+            ui.label(text);
         }
     }
 
