@@ -95,6 +95,11 @@ impl MyApp {
     }
 
     fn render_time(&self, ui: &mut egui::Ui) {
+        // day and month
+        ui.label(RichText::new(format!(
+            "{}",
+            self.current_time.format("%A %d %B")
+        )));
         ui.label(
             RichText::new(format!(
                 "{:02}:{:02}",
