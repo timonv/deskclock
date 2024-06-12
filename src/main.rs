@@ -12,6 +12,9 @@ mod oauth_browser_delegate;
 
 static GOOGLE_REFRESH_INTERVAL: i64 = 60 * 60; // 1 hour
 static MAX_NUM_EVENTS: usize = 10;
+static EVENT_FONT_SIZE: f32 = 16.0;
+static EVENT_LABEL_FONT_SIZE: f32 = 24.0;
+static CLOCK_FONT_SIZE: f32 = 60.0;
 //
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -107,7 +110,7 @@ impl MyApp {
                 self.current_time.minute(),
             ))
             .monospace()
-            .size(50.0),
+            .size(CLOCK_FONT_SIZE),
         );
     }
 
@@ -158,7 +161,7 @@ impl MyApp {
 
         if event.end < self.current_time {
             text = text.strikethrough();
-            return text;
+            return text.size(EVENT_FONT_SIZE);
         }
 
         if event
@@ -177,7 +180,7 @@ impl MyApp {
             text = text.strong();
         }
 
-        text
+        text.size(EVENT_FONT_SIZE)
     }
 
     fn render_next_event(&self, ui: &mut egui::Ui) {
@@ -200,7 +203,7 @@ impl MyApp {
             Today => "today",
             Later => "later",
         })
-        .size(20.0);
+        .size(EVENT_LABEL_FONT_SIZE);
         if enabled {
             ui.label(text.strong());
         } else if ui.label(text).clicked() {
