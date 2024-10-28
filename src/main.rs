@@ -10,7 +10,6 @@ use log::warn;
 
 mod date_ext;
 mod google;
-mod oauth_browser_delegate;
 
 static GOOGLE_REFRESH_INTERVAL: i64 = 60 * 60; // 1 hour
 static MAX_NUM_EVENTS: usize = 10;
@@ -19,6 +18,10 @@ static EVENT_LABEL_FONT_SIZE: f32 = 24.0;
 static CLOCK_FONT_SIZE: f32 = 60.0;
 //
 fn main() -> Result<(), Box<dyn Error>> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     env_logger::init();
 
     #[cfg(not(debug_assertions))]
@@ -40,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let app = MyApp::default();
-    eframe::run_native("Deskclock", options, Box::new(|_cc| Box::new(app)))?;
+    eframe::run_native("Deskclock", options, Box::new(|_cc| Ok(Box::new(app))))?;
     Ok(())
 }
 

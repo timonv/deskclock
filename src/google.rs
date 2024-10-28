@@ -1,13 +1,11 @@
 use anyhow::Result;
 use chrono::Timelike as _;
 use google_calendar3::api::{EventDateTime, Events};
-use google_calendar3::hyper::client::HttpConnector;
 use google_calendar3::hyper_rustls::HttpsConnector;
-use google_calendar3::{chrono, hyper, hyper_rustls, oauth2, CalendarHub};
+use google_calendar3::{hyper, hyper_rustls, CalendarHub};
+use hyper_util::client::legacy::connect::HttpConnector;
 use log::{error, info};
 use std::default::Default;
-
-use crate::oauth_browser_delegate::InstalledFlowBrowserDelegate;
 
 pub struct GoogleCalendar {
     inner: AsyncCalendar,
@@ -73,19 +71,20 @@ fn extract_date_or_default(date_time: Option<EventDateTime>) -> chrono::DateTime
 impl AsyncCalendar {
     async fn authenticate(&mut self) -> Result<()> {
         let credentials_json = include_str!("../credentials.json");
-        let creds = oauth2::parse_service_account_key(credentials_json)?;
-        let auth = oauth2::ServiceAccountAuthenticator::builder(creds)
+        let creds = yup_oauth2::parse_service_account_key(credentials_json)?;
+        let auth = yup_oauth2::ServiceAccountAuthenticator::builder(creds)
             .build()
             .await?;
 
         self.hub = Some(CalendarHub::new(
-            hyper::Client::builder().build(
-                hyper_rustls::HttpsConnectorBuilder::new()
-                    .with_native_roots()
-                    .https_or_http()
-                    .enable_http1()
-                    .build(),
-            ),
+            hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
+                .build(
+                    hyper_rustls::HttpsConnectorBuilder::new()
+                        .with_native_roots()?
+                        .https_or_http()
+                        .enable_http1()
+                        .build(),
+                ),
             auth,
         ));
 
