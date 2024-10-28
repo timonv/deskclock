@@ -8,7 +8,6 @@ Feel free to fork and experiment.
 
 ![image](https://github.com/timonv/deskclock/assets/49373/3f26a1d7-ef5f-46e2-81d2-eaa55a026904)
 
-
 ## Features
 
 - Display the current time
@@ -20,7 +19,9 @@ Feel free to fork and experiment.
 
 Example script to deploy the project on a Raspberry Pi with a 7" touch screen.
 
-Make sure you have set up a Google Cloud project with the Calendar API enabled and downloaded the credentials. Personally I prefer to auth locally and just copy over the token cache.
+For authentication, create a service account and share your calendar with the service account. It needs to have google calendar read access.
+
+Credentials are expected to be in `./credentials.json` and a `GOOGLE_CALENDAR_ACCOUNT` set in a local dot env file.
 
 ```bash
 
@@ -29,8 +30,6 @@ Make sure you have set up a Google Cloud project with the Calendar API enabled a
 set -xe
 
 cross build +nightly --target=aarch64-unknown-linux-gnu --release
-scp credentials.json $PI_URL:/home/pi/credentials.json
-scp tokencache.json $PI_URL:/home/pi/tokencache.json
 scp target/aarch64-unknown-linux-gnu/release/deskclock $PI_URL:/home/pi/deskclock
 ssh $PI_URL 'DISPLAY=:0 /home/pi/deskclock'
 ```
