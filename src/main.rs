@@ -1,3 +1,5 @@
+use anyhow::Result;
+use dotenvy_macro::dotenv;
 use std::{error::Error, time::Duration};
 
 use chrono::{DateTime, Local, Timelike};
@@ -37,11 +39,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
 
-    eframe::run_native(
-        "Deskclock",
-        options,
-        Box::new(|_cc| Box::new(MyApp::default())),
-    )?;
+    let app = MyApp::default();
+    eframe::run_native("Deskclock", options, Box::new(|_cc| Box::new(app)))?;
     Ok(())
 }
 
@@ -61,10 +60,11 @@ enum EventFilter {
 
 impl Default for MyApp {
     fn default() -> Self {
+        let account_email = dotenv!("GOOGLE_ACCOUNT_EMAIL");
+
         let current_time = chrono::offset::Local::now();
-        let mut calendar =
-            google::GoogleCalendar::try_new().expect("Failed to create GoogleCalendar");
-        calendar.authenticate();
+        let mut calendar = google::GoogleCalendar::try_new(account_email)
+            .expect("Failed to create GoogleCalendar");
         let events = calendar.get_events();
 
         MyApp {

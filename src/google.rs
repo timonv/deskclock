@@ -4,7 +4,7 @@ use google_calendar3::api::{EventDateTime, Events};
 use google_calendar3::hyper::client::HttpConnector;
 use google_calendar3::hyper_rustls::HttpsConnector;
 use google_calendar3::{chrono, hyper, hyper_rustls, oauth2, CalendarHub};
-use log::info;
+use log::{error, info};
 use std::default::Default;
 
 use crate::oauth_browser_delegate::InstalledFlowBrowserDelegate;
@@ -12,6 +12,7 @@ use crate::oauth_browser_delegate::InstalledFlowBrowserDelegate;
 pub struct GoogleCalendar {
     inner: AsyncCalendar,
     runtime: tokio::runtime::Runtime,
+    pub account_email: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,33 +28,39 @@ struct AsyncCalendar {
 }
 
 impl GoogleCalendar {
-    pub fn try_new() -> Result<Self> {
+    pub fn try_new(account_email: &str) -> Result<Self> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
         Ok(Self {
             inner: AsyncCalendar::default(),
             runtime,
+            account_email: account_email.to_string(),
         })
     }
 
-    pub fn authenticate(&mut self) {
-        self.runtime.block_on(self.inner.authenticate())
-    }
-
-    pub fn get_events(&self) -> Vec<CalendarEvent> {
-        let events = self.runtime.block_on(self.inner.get_events()).unwrap();
-        events.items.map_or(vec![], |items| {
-            items
-                .into_iter()
-                .map(|event| CalendarEvent {
+    pub fn get_events(&mut self) -> Vec<CalendarEvent> {
+        let events = match self
+            .runtime
+            .block_on(self.inner.get_events(&self.account_email))
+        {
+            Ok(events) => events.items.unwrap_or_default(),
+            Err(e) => {
+                error!("Failed to get events: {}", e);
+                vec![]
+            }
+        };
+        events
+            .into_iter()
+            .map(|event| {
+                CalendarEvent {
                     // TODO: Sane defaults
                     start: extract_date_or_default(event.start).into(),
                     end: extract_date_or_default(event.end).into(),
                     summary: event.summary.unwrap_or_else(|| "No summary".to_string()),
-                })
-                .collect()
-        })
+                }
+            })
+            .collect()
     }
 }
 
@@ -64,21 +71,13 @@ fn extract_date_or_default(date_time: Option<EventDateTime>) -> chrono::DateTime
 }
 
 impl AsyncCalendar {
-    async fn authenticate(&mut self) {
-        info!("Authenticating with Google Calendar API");
-        let secret = oauth2::read_application_secret("credentials.json")
-            .await
-            .unwrap();
-        let auth = oauth2::InstalledFlowAuthenticator::builder(
-            secret,
-            oauth2::InstalledFlowReturnMethod::HTTPRedirect,
-        )
-        .persist_tokens_to_disk("tokencache.json")
-        .flow_delegate(Box::new(InstalledFlowBrowserDelegate))
-        .build()
-        .await
-        .unwrap();
-        info!("Authenticated with Google Calendar API");
+    async fn authenticate(&mut self) -> Result<()> {
+        let credentials_json = include_str!("../credentials.json");
+        let creds = oauth2::parse_service_account_key(credentials_json)?;
+        let auth = oauth2::ServiceAccountAuthenticator::builder(creds)
+            .build()
+            .await?;
+
         self.hub = Some(CalendarHub::new(
             hyper::Client::builder().build(
                 hyper_rustls::HttpsConnectorBuilder::new()
@@ -89,9 +88,14 @@ impl AsyncCalendar {
             ),
             auth,
         ));
-    }
 
-    async fn get_events(&self) -> Result<Events> {
+        Ok(())
+    }
+    async fn get_events(&mut self, account_email: &str) -> Result<Events> {
+        if self.hub.is_none() {
+            self.authenticate().await?;
+        }
+
         let time_min = chrono::offset::Local::now()
             .with_hour(0)
             .expect("Could not set min time for calendar")
@@ -100,12 +104,13 @@ impl AsyncCalendar {
             "Getting events from Google Calendar API between {} and now",
             time_min
         );
+        // list calendars
         let events = self
             .hub
             .as_ref()
             .expect("Not authenticated")
             .events()
-            .list("primary")
+            .list(account_email)
             .single_events(true)
             .show_deleted(false)
             .order_by("startTime")

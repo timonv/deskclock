@@ -2,3 +2,4 @@
 tokencache.json
 credentials.json
 release.sh
+.env
